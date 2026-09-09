@@ -66,6 +66,20 @@ jobs:
       - name: Tambah platform Android
         run: npx cap add android
 
+      - name: Pastikan Gradle & AGP kompatibel dengan JDK 21
+        working-directory: android
+        run: |
+          echo "--- gradle-wrapper.properties SEBELUM ---"
+          cat gradle/wrapper/gradle-wrapper.properties
+          sed -i 's#distributionUrl=.*#distributionUrl=https\\://services.gradle.org/distributions/gradle-8.11.1-all.zip#' gradle/wrapper/gradle-wrapper.properties
+          echo "--- gradle-wrapper.properties SESUDAH ---"
+          cat gradle/wrapper/gradle-wrapper.properties
+          echo "--- build.gradle (root) SEBELUM ---"
+          cat build.gradle
+          sed -i -E "s#(classpath ['\"]com\.android\.tools\.build:gradle:)[0-9.]+(['\"])#\\18.7.2\\2#" build.gradle
+          echo "--- build.gradle (root) SESUDAH ---"
+          cat build.gradle
+
       - name: Sync Capacitor -> Android
         run: npx cap sync android
 
