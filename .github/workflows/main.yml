@@ -1,0 +1,82 @@
+name: Build TRMNL APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Cari & extract trmnl-app.zip (kalau di-upload sebagai file zip utuh)
+        run: |
+          set -e
+          if [ -f "trmnl-app.zip" ]; then
+            echo "Ditemukan trmnl-app.zip di root repo — mengekstrak..."
+            mkdir -p extracted
+            unzip -o trmnl-app.zip -d extracted
+          elif [ -d "app" ]; then
+            echo "Tidak ada trmnl-app.zip, tapi folder app/ sudah ada di repo — dipakai langsung."
+            mkdir -p extracted
+            cp -r app extracted/app
+          else
+            echo "::error::Tidak ditemukan trmnl-app.zip maupun folder app/ di repo. Pastikan salah satunya ada di root repo."
+            exit 1
+          fi
+
+      - name: Validasi isi app/ hasil extract
+        run: |
+          if [ ! -f "extracted/app/index.html" ]; then
+            echo "::error::extracted/app/index.html tidak ditemukan setelah extract. Cek struktur trmnl-app.zip — pastikan ada folder app/ berisi index.html di dalamnya."
+            exit 1
+          fi
+          echo "OK — index.html ditemukan."
+          ls -la extracted/app
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Init npm project
+        run: npm init -y
+
+      - name: Install Capacitor
+        run: npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Siapkan folder web (www) dari hasil extract
+        run: |
+          mkdir -p www
+          cp -r extracted/app/* www/
+          ls -la www
+
+      - name: Init Capacitor
+        run: npx cap init "TRMNL" "id.trmnl.app" --web-dir=www
+
+      - name: Tambah platform Android
+        run: npx cap add android
+
+      - name: Sync Capacitor -> Android
+        run: npx cap sync android
+
+      - name: Build APK debug
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK sebagai artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TRMNL-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
