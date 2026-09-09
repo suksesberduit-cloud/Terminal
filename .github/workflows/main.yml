@@ -77,7 +77,23 @@ jobs:
           echo "--- build.gradle (root) SEBELUM ---"
           cat build.gradle
           sed -i -E "s#(classpath ['\"]com\.android\.tools\.build:gradle:)[0-9.]+(['\"])#\\18.7.2\\2#" build.gradle
-          echo "--- build.gradle (root) SESUDAH ---"
+          echo "--- build.gradle (root) SESUDAH sed AGP ---"
+          cat build.gradle
+          echo "--- Paksa konsistensi versi Kotlin stdlib (fix duplicate class) ---"
+          {
+            echo ''
+            echo 'allprojects {'
+            echo '    configurations.all {'
+            echo '        resolutionStrategy {'
+            echo "            force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.24'"
+            echo "            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24'"
+            echo "            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24'"
+            echo "            force 'org.jetbrains.kotlin:kotlin-stdlib-common:1.9.24'"
+            echo '        }'
+            echo '    }'
+            echo '}'
+          } >> build.gradle
+          echo "--- build.gradle (root) FINAL ---"
           cat build.gradle
 
       - name: Sync Capacitor -> Android
